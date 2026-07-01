@@ -1,0 +1,39 @@
+# Taxonomy of rhetorical manipulation techniques
+# Each technique has an ID, name, definition, and examples
+
+techniques:
+  - id: T1
+    name: "Apelo ao Medo"
+    definition: "Uso de ameaças ou cenários catastróficos para influenciar a audiência."
+    examples:
+      - "Se não aprovarmos essa medida, o país vai afundar."
+
+  - id: T2
+    name: "Falsa Dicotomia"
+    definition: "Apresentação de apenas duas opções quando existem outras alternativas."
+    examples:
+      - "Ou estão conosco ou estão contra o Brasil."
+
+  - id: T3
+    name: "Ad Hominem"
+    definition: "Ataque à pessoa em vez de ao argumento."
+    examples:
+      - "O deputado não tem moral para falar sobre isso."
+
+  - id: T4
+    name: "Apelo à Autoridade"
+    definition: "Uso de uma figura de autoridade como prova de um argumento."
+    examples:
+      - "Os maiores economistas do mundo concordam comigo."
+
+  - id: T5
+    name: "Generalização Apressada"
+    definition: "Conclusão geral a partir de poucos casos."
+    examples:
+      - "Todos os políticos são corruptos."
+
+  - id: T6
+    name: "Espantalho"
+    definition: "Distorção do argumento do oponente para facilitar o ataque."
+    examples:
+      - "O colega quer que o Estado controle tudo na vida das pessoas."

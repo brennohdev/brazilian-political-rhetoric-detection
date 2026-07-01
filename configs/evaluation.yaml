@@ -1,0 +1,27 @@
+# Evaluation and statistical analysis configuration
+
+random_seed: 42
+
+bootstrap:
+  iterations: 10000
+  confidence_level: 0.95
+
+significance:
+  level: 0.05
+  bonferroni_tests: 18  # number of comparisons for Bonferroni correction
+
+metrics:
+  primary:
+    - "f1_macro"
+    - "f1_weighted"
+  per_class:
+    - "precision"
+    - "recall"
+    - "f1"
+  bias:
+    - "demographic_parity_difference"
+    - "equalized_odds_difference"
+
+inter_annotator:
+  metric: "cohens_kappa"
+  minimum_agreement: 0.6

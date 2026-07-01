@@ -1,0 +1,30 @@
+# Deputy list and party spectrum mapping
+# Used for stratified sampling and political bias analysis
+
+party_spectrum:
+  left:
+    - PT
+    - PSOL
+    - PCdoB
+    - PDT
+    - REDE
+  center:
+    - MDB
+    - PSD
+    - PSDB
+    - CIDADANIA
+    - PODEMOS
+  right:
+    - PL
+    - PP
+    - REPUBLICANOS
+    - UNIÃO
+    - NOVO
+
+deputies:
+  # Deputies will be populated after collection
+  # Structure: list of {name, party, spectrum, state}
+  - name: "placeholder"
+    party: "PT"
+    spectrum: "left"
+    state: "SP"
