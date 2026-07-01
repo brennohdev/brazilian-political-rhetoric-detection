@@ -1,39 +1,70 @@
 # Taxonomy of rhetorical manipulation techniques
-# Each technique has an ID, name, definition, and examples
+# Based on SemEval-2020 Task 11 (Da San Martino et al.) and SemEval-2023 Task 3 (Piskorski et al.)
+# Technique names in English (canonical), definitions and examples in Portuguese (target domain)
 
 techniques:
-  - id: T1
-    name: "Apelo ao Medo"
-    definition: "Uso de ameaças ou cenários catastróficos para influenciar a audiência."
-    examples:
-      - "Se não aprovarmos essa medida, o país vai afundar."
+  - name: "Loaded Language"
+    definition: "Uso de palavras ou expressões com forte carga emocional (positiva ou negativa) desproporcional ao contexto, com o objetivo de influenciar a audiência por meio da emoção em vez da razão."
+    positive_examples:
+      - "Essa política assassina de empregos precisa ser revogada imediatamente."
+      - "O governo irresponsável está destruindo o futuro das nossas crianças."
+      - "A máquina de corrupção instalada em Brasília é uma vergonha nacional."
+    negative_examples:
+      - "O governo implementou uma nova política econômica no último trimestre."
+      - "O deputado apresentou um projeto de lei sobre reforma tributária."
+    frequency_reference: 0.237
 
-  - id: T2
-    name: "Falsa Dicotomia"
-    definition: "Apresentação de apenas duas opções quando existem outras alternativas."
-    examples:
-      - "Ou estão conosco ou estão contra o Brasil."
+  - name: "Name Calling"
+    definition: "Atribuição de rótulos pejorativos, insultos ou estereótipos ao adversário político com o objetivo de desqualificá-lo perante a audiência, sem abordar o mérito do argumento."
+    positive_examples:
+      - "Esses comunistas querem destruir a família brasileira."
+      - "Os fascistas no poder não respeitam a democracia."
+      - "Esse bando de ladrões não tem moral para falar de ética."
+    negative_examples:
+      - "O deputado da oposição apresentou uma proposta diferente da nossa."
+      - "Discordamos da posição do partido adversário sobre essa matéria."
+    frequency_reference: 0.185
 
-  - id: T3
-    name: "Ad Hominem"
-    definition: "Ataque à pessoa em vez de ao argumento."
-    examples:
-      - "O deputado não tem moral para falar sobre isso."
+  - name: "Doubt"
+    definition: "Semear dúvida sobre fatos, instituições ou pessoas sem apresentar evidências concretas, utilizando insinuações, perguntas retóricas ou referências vagas para minar a credibilidade do alvo."
+    positive_examples:
+      - "Dizem que esse deputado tem ligações com organizações criminosas."
+      - "Será que podemos confiar nos números apresentados por esse ministério?"
+      - "Há quem diga que por trás dessa votação existem interesses obscuros."
+    negative_examples:
+      - "Os dados do IBGE mostram uma queda de 2% no desemprego."
+      - "O relatório da comissão aponta inconsistências nos gastos."
+    frequency_reference: 0.125
 
-  - id: T4
-    name: "Apelo à Autoridade"
-    definition: "Uso de uma figura de autoridade como prova de um argumento."
-    examples:
-      - "Os maiores economistas do mundo concordam comigo."
+  - name: "Appeal to Fear"
+    definition: "Criação ou amplificação de medo na audiência por meio de cenários catastróficos, ameaças ou consequências extremas, com o objetivo de manipular decisões através da emoção do medo."
+    positive_examples:
+      - "Se aprovarmos essa lei, o Brasil vai virar uma Venezuela."
+      - "Vão destruir sua família, tirar suas armas e seus filhos."
+      - "Se a oposição vencer, milhões perderão o emprego e passarão fome."
+    negative_examples:
+      - "Economistas alertam que a inflação pode subir nos próximos meses."
+      - "O relatório indica riscos para o equilíbrio fiscal se a medida for aprovada."
+    frequency_reference: 0.08
 
-  - id: T5
-    name: "Generalização Apressada"
-    definition: "Conclusão geral a partir de poucos casos."
-    examples:
-      - "Todos os políticos são corruptos."
+  - name: "Causal Oversimplification"
+    definition: "Atribuição de uma causa única e simples a um problema complexo que possui múltiplas causas, ignorando deliberadamente a complexidade da questão para fortalecer um argumento político."
+    positive_examples:
+      - "A culpa de toda a violência no Brasil é do desarmamento."
+      - "O desemprego existe porque o governo não corta gastos."
+      - "Se não fossem os políticos corruptos, o Brasil seria um país de primeiro mundo."
+    negative_examples:
+      - "O aumento da violência tem múltiplas causas, incluindo desigualdade e desemprego."
+      - "A crise econômica resulta de fatores internos e externos combinados."
+    frequency_reference: 0.06
 
-  - id: T6
-    name: "Espantalho"
-    definition: "Distorção do argumento do oponente para facilitar o ataque."
-    examples:
-      - "O colega quer que o Estado controle tudo na vida das pessoas."
+  - name: "Flag-Waving"
+    definition: "Apelo ao patriotismo, à religião, à identidade de grupo ou a valores nacionais para justificar uma posição política, invocando lealdade ao grupo em vez de argumentos racionais."
+    positive_examples:
+      - "Quem ama o Brasil de verdade não pode aceitar essa proposta."
+      - "Deus, pátria e família — é isso que defendemos nesta Casa."
+      - "Em nome do povo brasileiro e da nossa soberania, votaremos contra."
+    negative_examples:
+      - "Este projeto beneficia cidadãos de todas as regiões do país."
+      - "A Constituição Federal garante esse direito a todos os brasileiros."
+    frequency_reference: 0.05
