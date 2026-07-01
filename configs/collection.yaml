@@ -1,20 +1,8 @@
-# Data collection configuration for the Chamber of Deputies API
-
-api:
-  base_url: "https://dadosabertos.camara.leg.br/api/v2"
-  rate_limit_delay: 1.0  # seconds between requests
-  max_retries: 3
-  timeout: 30  # seconds
-
-collection:
-  start_date: "2023-02-01"
-  end_date: "2024-12-31"
-  session_types:
-    - "Grande Expediente"
-    - "Ordem do Dia"
-  legislative_phase: "57"  # 57th legislature
-
-output:
-  output_dir: "data/raw"
-  file_format: "parquet"
-  checkpoint_every: 100  # save progress every N speeches
+start_date: "2023-02-01"
+end_date: "2024-12-31"
+session_types:
+  - "Grande Expediente"
+  - "Ordem do Dia"
+rate_limit_delay: 1.0
+max_retries: 3
+output_dir: "data/raw"

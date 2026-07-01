@@ -1,0 +1,4 @@
+target_per_stratum: 100
+seed: 42
+temporal_periods: 4
+segment_sentences: [3, 5]
