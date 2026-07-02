@@ -1,4 +1,4 @@
-# Deputy list and party spectrum mapping
+# Party-to-spectrum mapping based on Zucco & Power (2024)
 # Used for stratified sampling and political bias analysis
 
 party_spectrum:
@@ -8,23 +8,24 @@ party_spectrum:
     - PCdoB
     - PDT
     - REDE
+    - PV
+    - SOLIDARIEDADE
   center:
     - MDB
     - PSD
     - PSDB
     - CIDADANIA
     - PODEMOS
+    - AVANTE
+    - PROS
   right:
     - PL
     - PP
     - REPUBLICANOS
     - UNIÃO
     - NOVO
+    - PATRIOTA
+    - PSC
 
-deputies:
-  # Deputies will be populated after collection
-  # Structure: list of {name, party, spectrum, state}
-  - name: "placeholder"
-    party: "PT"
-    spectrum: "left"
-    state: "SP"
+# Note: Deputies will be fetched dynamically from the API.
+# This file only provides the party-to-spectrum classification.
