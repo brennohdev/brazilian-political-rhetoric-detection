@@ -198,27 +198,42 @@
 
 ## 6. Classification
 
-*To be documented after implementation.*
+*Implemented 2026-07-02.*
 
 ### 6.1 Model Selection
 
 | Model | Type | Justification |
 |-------|------|---------------|
-| GPT-4o | Commercial LLM (few-shot) | State-of-the-art performance baseline; zero-shot/few-shot capability in Portuguese |
-| LLaMA 3.x (8B, Q4) | Open-source LLM (few-shot) | Reproducibility; local execution; comparison with commercial model |
+| GPT-4o | Commercial LLM (few-shot) | State-of-the-art performance baseline; strong Portuguese capability; deterministic at temp=0 |
+| LLaMA 3.1 8B Q4 | Open-source LLM (few-shot) | Reproducibility; local execution via Ollama; comparison with commercial model; accessible to other researchers |
 | BERTimbau | Fine-tuned encoder | Portuguese-specific pre-training; supervised baseline; computational efficiency |
 
 ### 6.2 Prompt Design
 
-*To be documented after pilot.*
+| Item | Decision |
+|------|----------|
+| **Structure** | System message (role) + User message (taxonomy + format + segment) |
+| **Taxonomy source** | `configs/taxonomy.yaml` — definitions and examples in Portuguese |
+| **Output format** | JSON array of `{technique, span, confidence}` |
+| **Examples** | From taxonomy YAML (positive + negative examples per technique) — NOT from human annotations |
+| **Justification** | Few-shot with taxonomy examples provides a fair baseline without requiring any annotation. Same prompt for both GPT-4o and LLaMA ensures fair comparison. |
 
 ### 6.3 Temperature and Parameters
 
-| Model | Temperature | Justification |
-|-------|-------------|---------------|
-| GPT-4o | 0.0 | Deterministic outputs for reproducibility |
-| LLaMA | 0.0 | Same rationale |
-| BERTimbau | N/A (argmax/threshold) | Supervised; threshold tuned on dev set |
+| Model | Temperature | Max Tokens | Justification |
+|-------|-------------|------------|---------------|
+| GPT-4o | 0.0 | 2048 | Deterministic outputs for reproducibility |
+| LLaMA | 0.0 | 2048 | Same rationale; identical prompt structure |
+| BERTimbau | N/A | N/A | Supervised; threshold tuned on dev set |
+
+### 6.4 Failure Handling
+
+| Item | Decision |
+|------|----------|
+| **Threshold** | 5% failure rate (halts classification if exceeded) |
+| **Retry** | 3 attempts with exponential backoff |
+| **Failed segments** | Recorded with empty prediction list; logged for analysis |
+| **Pilot threshold** | Relaxed to 20% (exploratory phase) |
 
 ---
 
@@ -277,3 +292,4 @@
 | 2026-07-02 | 2. Preprocessing | Implemented and documented filter pipeline; recorded actual attrition (7.3% total removal) |
 | 2026-07-02 | 3. EDA | Full EDA complete: 7 figures, stratification analysis, power analysis, sampling recommendation (Option B: 75/stratum) |
 | 2026-07-02 | 4. Sampling | Stratified sample drawn (900 speeches, 262 deputies) and segmented (3,625 segments) |
+| 2026-07-02 | 6. Classification | Implemented classification base (ABC, PromptBuilder, Runner), GPT-4o and LLaMA classifiers, pilot script |
