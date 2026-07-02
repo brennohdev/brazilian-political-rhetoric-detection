@@ -72,55 +72,76 @@
 
 ### 2.1 Filter Pipeline
 
-*To be documented after implementation.*
+| Step | Purpose | Justification | Implementation |
+|------|---------|---------------|----------------|
+| Legislative phase filter | Retain only argumentative phases (Ordem do Dia, Breves Comunicações) | See §1.4 — procedural sessions lack political rhetoric | `LegislativePhaseFilter` — set membership check |
+| Monologue isolation | Extract deputy's continuous speech before any presidente interjection | Interjections from "O SR. PRESIDENTE" or "A SRA. PRESIDENTA" introduce a different speaker; only the deputy's own words should be classified | `MonologueIsolator` — regex for speaker-change pattern |
+| Formality removal | Strip opening identification block ("O SR. NAME (Party - UF. Sem revisão do orador.) -") | This is metadata, not rhetorical content; including it would bias the classifier toward procedural language | `FormalityRemover` — regex for opening block + revision notes |
+| Text normalization | NFKC Unicode normalization, collapse whitespace | Consistency for TF-IDF and sentence detection; eliminates encoding artifacts | `TextNormalizer` |
+| Deduplication | TF-IDF cosine similarity ≥ 0.75, per-deputy | Deputies occasionally repeat template speeches; per-deputy scope avoids removing legitimately similar arguments from different deputies | `Deduplicator` — scikit-learn TfidfVectorizer + cosine_similarity, greedy first-occurrence retention |
+| Minimum length | ≥ 3 sentences | Segmentation requires 3-5 sentences per segment; speeches below this threshold cannot produce a single valid segment | `MinimumLengthFilter` — regex sentence boundary detection |
 
-| Step | Purpose | Justification |
-|------|---------|---------------|
-| Session/Phase filter | Retain only argumentative phases | See 1.4 |
-| Monologue isolation | Extract deputy's continuous speech | Remove presidente interjections, other speakers |
-| Formality removal | Strip parliamentary markers | "O SR. FULANO (Partido - UF. Sem revisão do orador.) -" are metadata, not rhetoric |
-| Text normalization | Unicode + whitespace | Consistency for NLP processing |
-| Deduplication | TF-IDF cosine ≥ 0.75 per deputy | Remove repeated/template speeches |
-| Minimum length | ≥ 3 sentences after cleaning | Segments need 3-5 sentences; speeches must have at least one segment |
+**Design pattern:** Strategy pattern (`FilterStep` ABC) allows adding/removing/reordering filters without modifying the pipeline orchestrator. Each filter has a single responsibility.
 
-### 2.2 Expected Attrition
+### 2.2 Actual Attrition (run 2026-07-02)
 
-*To be filled with actual numbers after running `02_preprocess.py`.*
+| Step | Input | Output | Removed | Rate |
+|------|-------|--------|---------|------|
+| Raw corpus (1 file had parse error) | 19,428 | 19,427 | 1 | 0.0% |
+| Legislative phase filter | 19,427 | 18,369 | 1,058 | 5.5% |
+| Monologue isolation | 18,369 | 18,296 | 73 | 0.4% |
+| Formality removal | 18,296 | 18,296 | 0 | 0.0% |
+| Text normalization | 18,296 | 18,296 | 0 | 0.0% |
+| Deduplication (TF-IDF cosine ≥ 0.75) | 18,296 | 18,275 | 21 | 0.1% |
+| Minimum length (< 3 sentences) | 18,275 | 18,006 | 269 | 1.5% |
+| **Final usable corpus** | **19,427** | **18,006** | **1,421** | **7.3%** |
 
-| Step | Input | Output | Removed |
-|------|-------|--------|---------|
-| Raw corpus | — | 19,428 | — |
-| Phase filter | 19,428 | ~18,369 | ~1,059 |
-| Monologue isolation | | | |
-| Formality removal | | | |
-| Text normalization | | | |
-| Deduplication | | | |
-| Minimum length | | | |
-| **Final usable** | | | |
+**Interpretation:** Very low attrition (7.3%) indicates high-quality collection. The largest filter is legislative phase (procedural sessions), which is expected. The extremely low deduplication rate (0.1%) suggests deputies rarely give near-identical speeches — the corpus has high content diversity.
 
 ---
 
 ## 3. Exploratory Data Analysis
 
-*To be documented after running `03_eda.py`.*
+*Completed 2026-07-02. Full report: `results/eda/eda_report.md`. Notebook: `notebooks/03_eda.ipynb`.*
 
 ### 3.1 Corpus Characterization
 
-- Speech counts by spectrum
-- Speech counts by party
-- Temporal distribution
-- Length distribution
-- Deputy concentration (Gini / top-N analysis)
+| Metric | Value |
+|--------|-------|
+| Processed speeches | 18,006 |
+| Unique deputies | 366 |
+| Unique parties | 19 |
+| Median word count | 256 |
+| Median sentence count | 15 |
+| Mean segments/speech | 4.3 (at 4 sentences/segment) |
+| Total available segments | ~76,826 |
 
-### 3.2 Attrition Analysis
+### 3.2 Spectrum Distribution (post-filtering)
 
-- Projected usable corpus after all filters
-- Per-step removal rates
+| Spectrum | Speeches | Deputies | Gini |
+|----------|----------|----------|------|
+| Left | 6,358 (35.3%) | 83 | 0.592 |
+| Center | 1,835 (10.2%) | 83 | 0.609 |
+| Right | 9,813 (54.5%) | 200 | 0.723 |
 
-### 3.3 Statistical Power Implications
+### 3.3 Key Statistical Findings
 
-- Available strata sizes for sampling
-- Minimum detectable effect sizes given corpus constraints
+1. **No length confound**: η² = 0.000075 (spectrum explains <0.01% of word count variance) — length is not confounded with political position.
+2. **Session type balance**: All spectrums have ~45-56% of each session type — no systematic bias.
+3. **Deputy concentration**: Gini = 0.693 overall. Top 31 deputies produce 50% of speeches. Stratified sampling must control for this (cap per-deputy contributions).
+4. **Temporal coverage**: 4 semesters with smallest stratum = 366 speeches (center/2024-S2). All sampling options (50-200/stratum) are feasible.
+
+### 3.4 Sampling Decision
+
+| Item | Decision |
+|------|----------|
+| **Recommended option** | B: 75 speeches/stratum × 12 strata = 900 speeches |
+| **Segments produced** | ~3,870 |
+| **Annotation target** | 600 segments (gold standard subset) |
+| **Power (H2)** | Detects OR ≥ 1.5 with Bonferroni-corrected α |
+| **Precision (H3)** | 95% CI half-width ≈ ±0.012 on macro-F1 |
+| **Annotation time** | ~30 hours per annotator |
+| **Justification** | Balances statistical rigor with annotation feasibility within deadline |
 
 ---
 
@@ -246,3 +267,5 @@
 | 2026-07-02 | 1. Data Collection | Initial documentation of collection decisions |
 | 2026-07-02 | 5. Taxonomy | Documented technique selection and justification |
 | 2026-07-02 | 8. Evaluation | Documented hypothesis testing framework |
+| 2026-07-02 | 2. Preprocessing | Implemented and documented filter pipeline; recorded actual attrition (7.3% total removal) |
+| 2026-07-02 | 3. EDA | Full EDA complete: 7 figures, stratification analysis, power analysis, sampling recommendation (Option B: 75/stratum) |
