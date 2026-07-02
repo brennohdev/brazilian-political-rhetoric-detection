@@ -31,25 +31,31 @@ from src.utils.io import load_jsonl, save_jsonl
 from src.utils.logging import setup_logging
 
 
-def run_gpt4o(segments: list[SpeechSegment], prompt_builder: PromptBuilder) -> None:
-    """Run GPT-4o classification on all segments."""
+def run_gpt4o(
+    segments: list[SpeechSegment], prompt_builder: PromptBuilder, mini: bool = False
+) -> None:
+    """Run GPT-4o or GPT-4o-mini classification on all segments."""
     from src.classification.gpt4o import GPT4oClassifier
 
     loader = ConfigLoader()
     models = loader.load_models()
     gpt_config = next((m for m in models if "gpt" in m.name.lower()), models[0])
 
-    classifier = GPT4oClassifier(config=gpt_config, prompt_builder=prompt_builder)
+    model_name = "gpt-4o-mini" if mini else "gpt-4o"
+    classifier = GPT4oClassifier(
+        config=gpt_config, prompt_builder=prompt_builder, model_name=model_name
+    )
     runner = ClassificationRunner(classifier, failure_threshold=0.05)
 
     results = runner.run(segments)
 
     # Flatten predictions and save
     all_predictions = [p for preds in results for p in preds]
-    output_path = Path("results/predictions/gpt4o.jsonl")
+    output_name = "gpt4o_mini" if mini else "gpt4o"
+    output_path = Path(f"results/predictions/{output_name}.jsonl")
     save_jsonl(all_predictions, output_path)
 
-    logger.info(f"GPT-4o: {len(all_predictions)} predictions saved to {output_path}")
+    logger.info(f"{model_name}: {len(all_predictions)} predictions saved to {output_path}")
     logger.info(f"  Failure rate: {runner.failure_rate:.1%}")
     logger.info(f"  Token usage: {classifier.token_usage}")
 
@@ -84,7 +90,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run generative classifiers")
     parser.add_argument(
         "--model",
-        choices=["gpt4o", "llama3", "all"],
+        choices=["gpt4o", "gpt4o-mini", "llama3", "all"],
         default="all",
         help="Which model to run (default: all)",
     )
@@ -119,7 +125,12 @@ def main() -> None:
     if args.model in ("gpt4o", "all"):
         logger.info("")
         logger.info("--- Running GPT-4o ---")
-        run_gpt4o(segments, prompt_builder)
+        run_gpt4o(segments, prompt_builder, mini=False)
+
+    if args.model in ("gpt4o-mini", "all"):
+        logger.info("")
+        logger.info("--- Running GPT-4o-mini ---")
+        run_gpt4o(segments, prompt_builder, mini=True)
 
     if args.model in ("llama3", "all"):
         logger.info("")

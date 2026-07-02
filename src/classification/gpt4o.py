@@ -12,7 +12,7 @@ from src.schemas.speech import SpeechSegment
 
 
 class GPT4oClassifier(BaseClassifier):
-    """Few-shot classifier using OpenAI GPT-4o API.
+    """Few-shot classifier using OpenAI GPT-4o or GPT-4o-mini API.
 
     Sends each segment with taxonomy definitions and format instructions.
     Parses JSON responses into Prediction objects.
@@ -23,15 +23,19 @@ class GPT4oClassifier(BaseClassifier):
         config: ModelConfig,
         prompt_builder: PromptBuilder,
         api_key: str | None = None,
+        model_name: str = "gpt-4o",
     ) -> None:
         self._config = config
         self._prompt_builder = prompt_builder
         self._client = OpenAI(api_key=api_key)  # Uses OPENAI_API_KEY env var if None
+        self._model_name = model_name
         self._token_usage: dict[str, int] = {"prompt": 0, "completion": 0}
         self._max_retries = 3
 
     @property
     def model_id(self) -> str:
+        if "mini" in self._model_name:
+            return "gpt4o_mini"
         return "gpt4o"
 
     def classify(self, segment: SpeechSegment) -> list[Prediction]:
@@ -61,7 +65,7 @@ class GPT4oClassifier(BaseClassifier):
         for attempt in range(self._max_retries):
             try:
                 response = self._client.chat.completions.create(
-                    model="gpt-4o",
+                    model=self._model_name,
                     messages=[
                         {"role": "system", "content": system_msg},
                         {"role": "user", "content": user_msg},

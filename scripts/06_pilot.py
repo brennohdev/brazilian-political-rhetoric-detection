@@ -1,22 +1,3 @@
-"""06_pilot.py — Pilot classification on a small subset.
-
-Runs generative classifiers on 50-100 segments to:
-1. Verify the pipeline works end-to-end
-2. Estimate technique prevalence in the corpus
-3. Check if the prompt produces sensible results
-4. Estimate API costs before full run
-
-No annotation needed — this is purely automated.
-
-Input:  data/segments/segments.jsonl
-Output: results/pilot/pilot_report.json
-        results/pilot/pilot_predictions.jsonl
-
-Usage:
-    uv run python scripts/06_pilot.py --model gpt4o --n 50
-    uv run python scripts/06_pilot.py --model llama3 --n 50
-"""
-
 import argparse
 import json
 import random
@@ -69,6 +50,16 @@ def run_pilot(
         models = loader.load_models()
         config = next((m for m in models if "gpt" in m.name.lower()), models[0])
         classifier = GPT4oClassifier(config=config, prompt_builder=prompt_builder)
+    elif model == "gpt4o-mini":
+        from src.classification.gpt4o import GPT4oClassifier
+        from src.config.loader import ConfigLoader
+
+        loader = ConfigLoader()
+        models = loader.load_models()
+        config = next((m for m in models if "gpt" in m.name.lower()), models[0])
+        classifier = GPT4oClassifier(
+            config=config, prompt_builder=prompt_builder, model_name="gpt-4o-mini"
+        )
     elif model == "llama3":
         from src.classification.llama import LLaMAClassifier
         from src.config.loader import ConfigLoader
@@ -129,7 +120,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Pilot classification study")
     parser.add_argument(
         "--model",
-        choices=["gpt4o", "llama3"],
+        choices=["gpt4o", "gpt4o-mini", "llama3"],
         required=True,
         help="Model to use for pilot",
     )
