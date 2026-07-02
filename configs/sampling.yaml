@@ -1,4 +1,7 @@
-target_per_stratum: 100
+# Stratified sampling configuration
+# EDA finding: smallest stratum (center/2024-S2) = 366, so up to 366/stratum is feasible
+# Recommended: 75/stratum × 12 strata = 900 speeches → ~3,870 segments
+target_per_stratum: 75
 seed: 42
-temporal_periods: 4
-segment_sentences: [3, 5]
+temporal_periods: 4  # 4 semesters: 2023-S1, 2023-S2, 2024-S1, 2024-S2
+segment_sentences: [3, 5]  # min and max sentences per segment

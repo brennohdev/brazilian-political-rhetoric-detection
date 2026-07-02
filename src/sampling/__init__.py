@@ -1,1 +1,1 @@
-"""Stratified sampling for balanced speech selection."""
+"""Stratified sampling and speech segmentation."""

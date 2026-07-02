@@ -147,22 +147,29 @@
 
 ## 4. Sampling
 
-*To be documented after implementation.*
+*Completed 2026-07-02.*
 
 ### 4.1 Stratification Strategy
 
 | Item | Decision |
 |------|----------|
 | **Strata** | political_spectrum × temporal_period |
-| **Temporal periods** | 4 (quarterly or semester-based, TBD by EDA) |
-| **Target per stratum** | TBD (informed by EDA and power analysis) |
-| **Justification** | Balanced representation ensures bias tests (H2) have equal power across spectrum. Temporal stratification controls for political events. |
+| **Temporal periods** | 4 semesters (2023-S1, 2023-S2, 2024-S1, 2024-S2) |
+| **Target per stratum** | 75 speeches |
+| **Total sample** | 900 speeches (75 × 12 strata) |
+| **Per-deputy cap** | 15 speeches max per deputy per stratum |
+| **Unique deputies in sample** | 262 (out of 366 available) |
+| **Justification** | 75/stratum (Option B from EDA) balances statistical power with annotation feasibility. Per-deputy cap controls Gini concentration (0.693) ensuring speaker diversity. All strata achieved target of 75 — no under-represented strata. |
+| **Seed** | 42 (deterministic reproducibility) |
 
 ### 4.2 Segmentation
 
 | Item | Decision |
 |------|----------|
 | **Segment size** | 3–5 sentences |
+| **Total segments** | 3,625 (from 900 speeches) |
+| **Average** | 4.0 segments/speech |
+| **Strategy** | Greedy chunking of max 5 sentences; remainders merged with previous segment |
 | **Justification** | SemEval-2020 Task 11 and SemEval-2023 Task 3 use span-level annotation on passages of similar granularity. 3–5 sentences provide enough context for technique identification while maintaining annotation feasibility. |
 | **Traceability** | Each segment has ID `{speech_id}_seg{NNN}` with char offsets back to the processed speech |
 
@@ -269,3 +276,4 @@
 | 2026-07-02 | 8. Evaluation | Documented hypothesis testing framework |
 | 2026-07-02 | 2. Preprocessing | Implemented and documented filter pipeline; recorded actual attrition (7.3% total removal) |
 | 2026-07-02 | 3. EDA | Full EDA complete: 7 figures, stratification analysis, power analysis, sampling recommendation (Option B: 75/stratum) |
+| 2026-07-02 | 4. Sampling | Stratified sample drawn (900 speeches, 262 deputies) and segmented (3,625 segments) |
