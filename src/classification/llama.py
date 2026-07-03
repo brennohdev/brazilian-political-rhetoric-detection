@@ -27,7 +27,7 @@ class LLaMAClassifier(BaseClassifier):
         self._config = config
         self._prompt_builder = prompt_builder
         self._ollama_url = ollama_url.rstrip("/")
-        self._model_name = config.quantization or "llama3.1:8b-instruct-q4_0"
+        self._model_name = config.name  # Full Ollama model identifier (e.g., "llama3.1:8b-instruct-q4_0")
         self._max_retries = 3
         self._client = httpx.Client(timeout=120.0)
 
@@ -184,11 +184,15 @@ class LLaMAClassifier(BaseClassifier):
                     model_id=self.model_id,
                     segment_id=segment.segment_id,
                 )
-                predictions.append(prediction)
+                # Filter out hallucinated predictions (confidence=0 means the model
+                # is echoing taxonomy examples, not analyzing the actual text)
+                if prediction.confidence > 0.0:
+                    predictions.append(prediction)
             except Exception:
                 continue
 
         return predictions
+
 
     def close(self) -> None:
         """Close the HTTP client."""

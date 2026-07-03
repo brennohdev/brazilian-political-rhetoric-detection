@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 from loguru import logger
 
 from src.exceptions import ClassificationError
@@ -7,12 +10,13 @@ from src.schemas.speech import SpeechSegment
 
 
 class ClassificationRunner:
-    """Orchestrates batch classification with failure tracking.
+    """Orchestrates batch classification with failure tracking and checkpointing.
 
     Responsibilities:
     - Run a classifier on a batch of segments
     - Track failed segments (parse errors, API errors)
     - Halt if failure rate exceeds threshold (data quality check)
+    - Save checkpoint every N segments for resumability
     - Report progress
     """
 
@@ -20,59 +24,69 @@ class ClassificationRunner:
         self,
         classifier: BaseClassifier,
         failure_threshold: float = 0.05,
+        checkpoint_dir: Path | None = None,
+        checkpoint_every: int = 25,
     ) -> None:
         self._classifier = classifier
         self._failure_threshold = failure_threshold
+        self._checkpoint_dir = checkpoint_dir
+        self._checkpoint_every = checkpoint_every
         self._results: list[list[Prediction]] = []
-        self._failures: list[str] = []  # segment_ids that failed
+        self._failures: list[str] = []
 
     def run(self, segments: list[SpeechSegment]) -> list[list[Prediction]]:
-        """Classify all segments with progress logging and failure tracking.
+        """Classify all segments with progress, failure tracking, and checkpointing.
 
-        Halts early if failure rate exceeds threshold.
-
-        Args:
-            segments: List of segments to classify.
-
-        Returns:
-            List of prediction lists (one per segment, in order).
-            Failed segments get an empty prediction list.
-
-        Raises:
-            ClassificationError: If failure rate exceeds threshold.
+        Resumes from checkpoint if one exists. Halts if failure rate exceeds threshold.
         """
         self._results = []
         self._failures = []
-        total = len(segments)
 
+        # Resume from checkpoint if available
+        start_idx = 0
+        if self._checkpoint_dir:
+            start_idx, resumed_results, resumed_failures = self._load_checkpoint()
+            if start_idx > 0:
+                self._results = resumed_results
+                self._failures = resumed_failures
+                logger.info(
+                    f"Resumed from checkpoint at segment {start_idx}/{len(segments)} "
+                    f"({len(resumed_failures)} previous failures)"
+                )
+
+        total = len(segments)
         logger.info(
             f"Starting classification with {self._classifier.model_id} "
-            f"on {total} segments (failure threshold: {self._failure_threshold:.1%})"
+            f"on {total} segments (from idx {start_idx}, "
+            f"failure threshold: {self._failure_threshold:.1%})"
         )
 
-        for i, segment in enumerate(segments):
+        for i in range(start_idx, total):
+            segment = segments[i]
             try:
+                import time
+                t0 = time.time()
                 predictions = self._classifier.classify(segment)
+                elapsed = time.time() - t0
                 self._results.append(predictions)
+                n_techs = len(predictions)
+                logger.info(
+                    f"  [{i+1}/{total}] ✓ {n_techs} technique{'s' if n_techs != 1 else ''} "
+                    f"detected ({elapsed:.1f}s) — {segment.segment_id[-30:]}"
+                )
             except Exception as e:
                 self._failures.append(segment.segment_id)
-                self._results.append([])  # Empty predictions for failed segments
-                logger.warning(
-                    f"Failed on segment {segment.segment_id}: {e}"
-                )
+                self._results.append([])
+                logger.warning(f"  [{i+1}/{total}] ✗ FAILED: {e}")
 
-            # Check failure threshold periodically (every 50 segments)
             processed = i + 1
-            if processed % 50 == 0:
+            if processed % self._checkpoint_every == 0:
                 self._check_threshold(processed, total)
-                logger.info(
-                    f"  Progress: {processed}/{total} "
-                    f"({processed/total*100:.1f}%) — "
-                    f"failures: {len(self._failures)}"
-                )
+                self._save_checkpoint(processed)
 
-        # Final threshold check
+        # Final check and cleanup
         self._check_threshold(total, total)
+        self._clear_checkpoint()
 
         logger.info(
             f"Classification complete: {total} segments, "
@@ -81,38 +95,73 @@ class ClassificationRunner:
         return self._results
 
     def _check_threshold(self, processed: int, total: int) -> None:
-        """Check if failure rate exceeds threshold. Raise if so."""
+        """Check if failure rate exceeds threshold."""
         if processed < 10:
-            return  # Don't check with too few samples
-
+            return
         rate = len(self._failures) / processed
         if rate > self._failure_threshold:
+            self._save_checkpoint(processed)
             raise ClassificationError(
                 f"Failure rate ({rate:.1%}) exceeds threshold "
-                f"({self._failure_threshold:.1%}) after {processed}/{total} segments. "
-                f"Halting classification.",
+                f"({self._failure_threshold:.1%}) after {processed}/{total} segments.",
                 context={
                     "model_id": self._classifier.model_id,
                     "processed": processed,
                     "failures": len(self._failures),
                     "failure_rate": rate,
-                    "threshold": self._failure_threshold,
-                    "failed_segments": self._failures[-10:],
                 },
             )
 
+    def _save_checkpoint(self, processed: int) -> None:
+        """Save progress to a checkpoint file."""
+        if not self._checkpoint_dir:
+            return
+        self._checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        path = self._checkpoint_dir / f"checkpoint_{self._classifier.model_id}.json"
+
+        data = {
+            "model_id": self._classifier.model_id,
+            "processed": processed,
+            "failures": self._failures,
+            "predictions": [[p.model_dump() for p in preds] for preds in self._results],
+        }
+        path.write_text(json.dumps(data), encoding="utf-8")
+
+    def _load_checkpoint(self) -> tuple[int, list[list[Prediction]], list[str]]:
+        """Load checkpoint. Returns (start_idx, results, failures)."""
+        if not self._checkpoint_dir:
+            return 0, [], []
+        path = self._checkpoint_dir / f"checkpoint_{self._classifier.model_id}.json"
+        if not path.exists():
+            return 0, [], []
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if data.get("model_id") != self._classifier.model_id:
+                return 0, [], []
+            results = [[Prediction.model_validate(p) for p in preds] for preds in data["predictions"]]
+            return data["processed"], results, data["failures"]
+        except Exception as e:
+            logger.warning(f"Failed to load checkpoint: {e}. Starting fresh.")
+            return 0, [], []
+
+    def _clear_checkpoint(self) -> None:
+        """Remove checkpoint after successful completion."""
+        if not self._checkpoint_dir:
+            return
+        path = self._checkpoint_dir / f"checkpoint_{self._classifier.model_id}.json"
+        if path.exists():
+            path.unlink()
+            logger.info("Checkpoint cleared (run completed)")
+
     @property
     def failure_rate(self) -> float:
-        """Current failure rate (failures / total processed)."""
         total = len(self._results)
         return len(self._failures) / max(total, 1)
 
     @property
     def failed_segments(self) -> list[str]:
-        """List of segment IDs that failed classification."""
         return self._failures
 
     @property
     def results(self) -> list[list[Prediction]]:
-        """Access results after running."""
         return self._results

@@ -1,1 +1,1 @@
-"""Annotation loading, validation, and consolidation."""
+"""Annotation loading, alignment, and calibration tracking."""

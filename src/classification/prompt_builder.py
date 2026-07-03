@@ -26,8 +26,17 @@ class PromptBuilder:
             "You will analyze short text passages (3-5 sentences) and identify "
             "which, if any, of the following 6 manipulation techniques are present. "
             "A segment may contain zero, one, or multiple techniques.\n\n"
-            "Be precise: only flag a technique when there is clear evidence in the text. "
-            "Neutral political speech without manipulation should return an empty list."
+            "IMPORTANT RULES:\n"
+            "- Be CONSERVATIVE. Most parliamentary speech is NOT manipulative. "
+            "Normal political debate, factual statements, and procedural language "
+            "should NOT be flagged.\n"
+            "- Only flag a technique when there is CLEAR, UNAMBIGUOUS evidence in the text.\n"
+            "- Do NOT reproduce the taxonomy examples as detections. Analyze ONLY "
+            "the actual text in the segment provided.\n"
+            "- If you are unsure whether something qualifies, do NOT include it.\n"
+            "- Neutral expressions like greetings, thanks, or descriptions of "
+            "infrastructure projects are NOT manipulation techniques.\n"
+            "- Return an EMPTY array [] if no techniques are clearly present."
         )
 
     def build_prompt(self, segment: SpeechSegment) -> str:

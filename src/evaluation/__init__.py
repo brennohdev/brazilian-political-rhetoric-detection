@@ -1,1 +1,1 @@
-"""Evaluation metrics and statistical analysis."""
+"""Evaluation module: agreement, bias, and performance metrics."""

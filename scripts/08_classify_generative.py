@@ -1,18 +1,3 @@
-"""08_classify_generative.py — Run GPT-4o and LLaMA classifiers.
-
-Classifies all segments using few-shot generative models.
-No annotation needed — uses taxonomy definitions as in-context examples.
-
-Input:  data/segments/segments.jsonl
-Output: results/predictions/gpt4o.jsonl
-        results/predictions/llama3.jsonl
-
-Usage:
-    uv run python scripts/08_classify_generative.py --model gpt4o
-    uv run python scripts/08_classify_generative.py --model llama3
-    uv run python scripts/08_classify_generative.py --model all
-"""
-
 import argparse
 from pathlib import Path
 
@@ -45,7 +30,11 @@ def run_gpt4o(
     classifier = GPT4oClassifier(
         config=gpt_config, prompt_builder=prompt_builder, model_name=model_name
     )
-    runner = ClassificationRunner(classifier, failure_threshold=0.05)
+    runner = ClassificationRunner(
+        classifier,
+        failure_threshold=0.05,
+        checkpoint_dir=Path("results/predictions/.checkpoints"),
+    )
 
     results = runner.run(segments)
 
@@ -69,7 +58,11 @@ def run_llama(segments: list[SpeechSegment], prompt_builder: PromptBuilder) -> N
     llama_config = next((m for m in models if "llama" in m.name.lower()), models[1])
 
     classifier = LLaMAClassifier(config=llama_config, prompt_builder=prompt_builder)
-    runner = ClassificationRunner(classifier, failure_threshold=0.05)
+    runner = ClassificationRunner(
+        classifier,
+        failure_threshold=0.05,
+        checkpoint_dir=Path("results/predictions/.checkpoints"),
+    )
 
     try:
         results = runner.run(segments)

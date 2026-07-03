@@ -280,6 +280,63 @@
 | **Validation** | Pilot comparison on 50 segments confirmed comparable behavior. Documented in `results/pilot/`. |
 | **Paper framing** | "We use GPT-4o-mini (OpenAI, 2024) as the commercial LLM baseline. A pilot study (n=50) comparing GPT-4o and GPT-4o-mini showed equivalent detection volume and precision (see Appendix X)." |
 
+### 6.7 Pilot Experiment: LLaMA 3.1 Initial Evaluation and Prompt Calibration
+
+**Objective:** Validate LLaMA 3.1 8B (Q4) behavior with the same prompt structure used for GPT-4o-mini.
+
+**Method:** Same 50 segments (seed=42), identical prompt (taxonomy definitions + JSON output format), temperature=0, local inference via Ollama.
+
+**Initial results (uncalibrated prompt):**
+
+| Metric | GPT-4o-mini | LLaMA 3.1 (uncalibrated) |
+|--------|-------------|--------------------------|
+| Total predictions | 10 | **106** |
+| Segments with any technique | 4 (8%) | **49 (98%)** |
+| Avg techniques/segment | 0.20 | **2.12** |
+| Failure rate | 0.0% | 0.0% |
+| Execution time (50 segments) | ~58s | ~350s (~7s/segment) |
+
+**Per-technique prevalence (uncalibrated):**
+
+| Technique | GPT-4o-mini | LLaMA 3.1 (uncalibrated) |
+|-----------|-------------|--------------------------|
+| Loaded Language | 6% | **90%** |
+| Flag-Waving | 2% | **48%** |
+| Doubt | 0% | **24%** |
+| Name Calling | 2% | 10% |
+| Causal Oversimplification | 4% | 8% |
+| Appeal to Fear | 2% | 6% |
+
+**Problems identified:**
+
+1. **Hallucination of taxonomy examples:** LLaMA outputted the taxonomy positive examples (e.g., "política assassina de empregos", "bando de ladrões", "Deus, pátria e família") as detections with confidence=0.0, even when these phrases did not appear in the segment text. This occurred in 4 segments.
+2. **Extreme over-detection:** 98% prevalence is unrealistic for parliamentary speeches. SemEval corpora of actual propaganda articles show ~30-40% prevalence. Neutral informative speech (describing infrastructure projects, thanking colleagues) was flagged.
+3. **Low threshold for "Loaded Language":** Normal expressions like "Muito obrigado, Presidente", "Se Deus quiser", "desenvolvimento muito grande" were classified as manipulation techniques.
+
+**Root cause:** The 8B Q4 model follows instructions less precisely than GPT-4o-mini. It interprets the taxonomy examples as a "detection template" and matches surface-level emotional language without considering context or proportionality.
+
+**Corrective action:** Prompt calibration with explicit precision instructions:
+- Added instruction: "Most parliamentary speech is NOT manipulative. Only flag clear, unambiguous cases."
+- Added instruction: "Do NOT output the taxonomy examples as detections. Analyze only the provided segment text."
+- Added instruction: "If unsure, do NOT include the detection."
+- Filtered out predictions with confidence=0.0 (hallucinated examples)
+
+**Post-calibration results:**
+
+| Metric | LLaMA (uncalibrated) | LLaMA (calibrated) |
+|--------|---------------------|-------------------|
+| Total predictions | 106 | 79 |
+| Segments with technique | 49 (98%) | 44 (88%) |
+| Avg techniques/segment | 2.12 | 1.58 |
+| Loaded Language prevalence | 90% | 82% |
+| Flag-Waving prevalence | 48% | 32% |
+| Doubt prevalence | 24% | 10% |
+| Hallucinated predictions (conf=0) | ~12 | 0 (filtered) |
+
+**Interpretation:** Calibration eliminated hallucinations and reduced over-detection moderately (106→79 predictions, 98%→88% prevalence). However, the fundamental over-detection problem persists — LLaMA classifies mildly emotional but contextually appropriate language (e.g., "infelizmente", "felicidades") as Loaded Language. This aligns with Jose & Greenstadt (2024) who found LLMs underperform on propaganda detection, though our failure mode is different (over-detection vs under-detection).
+
+**Decision:** Retain LLaMA with calibrated prompt as-is. The over-detection pattern is itself a research finding — it demonstrates that model architecture affects the *type* of errors, not just the error rate. The human annotations will serve as gold standard, and LLaMA's low precision will be measured quantitatively in H3.
+
 ---
 
 ## 7. Annotation
@@ -339,3 +396,9 @@
 | 2026-07-02 | 4. Sampling | Stratified sample drawn (900 speeches, 262 deputies) and segmented (3,625 segments) |
 | 2026-07-02 | 6. Classification | Implemented classification base (ABC, PromptBuilder, Runner), GPT-4o and LLaMA classifiers, pilot script |
 | 2026-07-02 | 6. Classification | Pilot experiment: GPT-4o vs GPT-4o-mini (n=50). Decision: adopt GPT-4o-mini as commercial LLM baseline (equivalent quality, 10× cheaper) |
+| 2026-07-02 | 6. Classification | LLaMA calibration: raw=98% prevalence, calibrated=88%. Over-detection documented as finding. |
+| 2026-07-02 | Pipeline | Implemented: BERTimbau classifier, minimal pairs builder (584 pairs), evaluation module (H1+H2+H3), annotation infrastructure |
+| 2026-07-02 | 6. Classification | LLaMA full run complete: 3,625 segments, 0 failures, 6,330 predictions, ~12h runtime. 91.8% segments flagged, avg 1.75 techniques/segment. Confirms pilot over-detection pattern at scale. |
+| 2026-07-02 | 6. Classification | GPT-4o-mini full run complete: 3,625 segments, 0 failures, 1,607 predictions. 20.1% segments flagged, avg 0.44 techniques/segment. Conservative and precise. |
+| 2026-07-02 | 8. Evaluation (H2) | GPT-4o-mini pairs classified (584 pairs, 1,007 predictions). McNemar results: **Doubt shows significant bias against left (OR=3.80, p=0.0043, Bonferroni-significant)**. Causal Oversimplification marginally significant (OR=2.25, p=0.0499). Other techniques: no significant bias. |
+| 2026-07-02 | 8. Evaluation (H2) | LLaMA pairs classified (584 pairs, 2,303 predictions). McNemar results: **Name Calling shows significant bias against left (OR=3.12, p=0.0031, Bonferroni-significant)**. Flag-Waving shows trend toward bias against right (OR=0.56, p=0.064, not significant). KEY FINDING: Models show bias on DIFFERENT techniques — GPT biased on Doubt, LLaMA biased on Name Calling. |

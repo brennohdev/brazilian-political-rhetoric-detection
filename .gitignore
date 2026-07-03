@@ -32,6 +32,7 @@ results/pilot/
 results/predictions/
 results/metrics/
 results/figures/
+paper/
 
 # Model checkpoints
 models/
